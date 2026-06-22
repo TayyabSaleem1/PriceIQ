@@ -37,8 +37,6 @@ def get_recommendations(_optimizer, fs_df):
     
     rec_df = _optimizer.optimize_portfolio(latest_df)
     
-    # Merge additional fields for UI
-    rec_df = pd.merge(rec_df, latest_df[['product_id', 'product_name']], on='product_id', how='left')
     return rec_df
 
 def generate_fallback_rationale(product_name, current_price, optimal_price, 
