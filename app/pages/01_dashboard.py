@@ -165,8 +165,8 @@ def main():
                 name='Confidence Band'
             ))
             
-            today = pd.to_datetime(hist_plot['ds'].max())
-            fig_forecast.add_vline(x=today, line_width=2, line_dash="dash", line_color="gray", annotation_text="Today")
+            today_ms = int(pd.to_datetime(hist_plot['ds'].max()).timestamp() * 1000)
+            fig_forecast.add_vline(x=today_ms, line_width=2, line_dash="dash", line_color="gray", annotation_text="Today")
             
             fig_forecast.update_layout(title="7-Day Demand Forecast with Confidence Interval", xaxis_title="Date", yaxis_title="Units Sold")
             st.plotly_chart(fig_forecast, use_container_width=True)
@@ -177,7 +177,7 @@ def main():
     
     # Section 4 - Price Distribution
     st.subheader("Our Price vs. Competitor Average by Category")
-    cat_price_df = latest_df.groupby('category')[['current_price', 'competitor_price']].mean().reset_index(drop=True)
+    cat_price_df = latest_df.groupby('category')[['current_price', 'competitor_price']].mean().reset_index()
     
     fig_bar = go.Figure()
     fig_bar.add_trace(go.Bar(x=cat_price_df['category'], y=cat_price_df['current_price'], name='Our Avg Price', marker_color='blue'))
