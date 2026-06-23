@@ -30,7 +30,9 @@ class PriceOptimizer:
 
     def optimize(self, product_id, cost_price, current_price, category, base_demand, competitor_price, stock_level):
         price_floor = cost_price * (1 + COST_MARGIN_FLOOR)
-        price_ceiling = competitor_price * 1.2
+        price_ceiling = min(competitor_price * 1.05, current_price * 1.25)
+        if price_ceiling < price_floor:
+          price_ceiling = price_floor * 1.1
         
         # Edge cases
         if stock_level == 0:

@@ -53,43 +53,49 @@ def generate_inventory(num_products=50):
 
 def generate_sales_history(inventory_df, start_date="2023-01-01", end_date="2024-12-31"):
     np.random.seed(42)
-    
+
+    true_elasticity = {
+        "electronics": -1.2,
+        "clothing": -0.8,
+        "home_garden": -1.5,
+        "sports": -0.9,
+        "beauty": -0.6
+    }
+
     dates = pd.date_range(start=start_date, end=end_date)
-    product_ids = inventory_df["product_id"].values
     cost_prices = inventory_df.set_index("product_id")["cost_price"].to_dict()
-    
+    categories = inventory_df.set_index("product_id")["category"].to_dict()
+
     sales_data = []
-    
-    for pid in product_ids:
+
+    for pid in inventory_df["product_id"].values:
         cost = cost_prices[pid]
+        category = categories[pid]
         base_price = cost * 1.4
-        
-        # Monthly seasonality pattern
+        elasticity = true_elasticity[category]
+        price_factor = cost / 500.0  # normalized 0-1
+        base_units = int(np.clip(50 - 35 * price_factor + np.random.normal(0, 3), 8, 55))
+
         t = np.arange(len(dates))
-        monthly_seasonality = 10 * np.sin(2 * np.pi * t / 365)
-        
-        # Promotions
+        monthly_seasonality = 0.15 * np.sin(2 * np.pi * t / 365)
         promo_flags = np.random.choice([0, 1], size=len(dates), p=[0.9, 0.1])
-        
-        # Base units
-        base_units = np.random.poisson(20, size=len(dates))
-        
+
         for i, date in enumerate(dates):
-            # Weekend bump
-            weekend_bump = 1.2 if date.weekday() >= 5 else 1.0
-            
-            # Promo bump
-            promo_bump = 1.3 if promo_flags[i] == 1 else 1.0
-            
-            # Final units sold
-            units_sold = max(0, int((base_units[i] + monthly_seasonality[i]) * weekend_bump * promo_bump))
-            
-            # Price charged with noise
-            price_charged = np.round(base_price * np.random.uniform(0.85, 1.15), 2)
-            
-            # Competitor price with noise
+            price_charged = np.round(base_price * np.random.uniform(0.70, 1.30), 2)
+            price_deviation = (price_charged - base_price) / base_price
+
+            weekend_factor = 1.2 if date.weekday() >= 5 else 1.0
+            promo_factor = 1.3 if promo_flags[i] == 1 else 1.0
+            seasonality_factor = 1 + monthly_seasonality[i]
+            elasticity_factor = 1 + elasticity * price_deviation
+
+            units_sold = max(1, int(
+                base_units * elasticity_factor * weekend_factor * promo_factor * seasonality_factor
+                + np.random.normal(0, 1)
+            ))
+
             comp_price = np.round(price_charged * np.random.uniform(0.9, 1.1), 2)
-            
+
             sales_data.append({
                 "date": date.strftime("%Y-%m-%d"),
                 "product_id": pid,
@@ -98,7 +104,7 @@ def generate_sales_history(inventory_df, start_date="2023-01-01", end_date="2024
                 "competitor_price": comp_price,
                 "promo_flag": promo_flags[i]
             })
-            
+
     return pd.DataFrame(sales_data)
 
 if __name__ == "__main__":
